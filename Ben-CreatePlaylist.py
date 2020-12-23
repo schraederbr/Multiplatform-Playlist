@@ -1,4 +1,6 @@
 class CreatePlaylist:
+
+    # a comment
     def __init__(self):
         pass
 
