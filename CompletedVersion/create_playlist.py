@@ -51,6 +51,7 @@ class CreatePlaylist:
             video_title = item["snippet"]["title"]
             youtube_url = "https://www.youtube.com/watch?v={}".format(
                 item["id"])
+            print(item["id"])
 
             # use youtube_dl to collect the song name & artist name
             video = youtube_dl.YoutubeDL({}).extract_info(
@@ -69,6 +70,7 @@ class CreatePlaylist:
                     "spotify_uri": self.get_spotify_uri(song_name, artist)
 
                 }
+        print(video_title)
 
     def create_playlist(self):
         """Create A New Playlist"""
@@ -78,8 +80,7 @@ class CreatePlaylist:
             "public": True
         })
 
-        query = "https://api.spotify.com/v1/users/{}/playlists".format(
-            spotify_user_id)
+        query = "https://api.spotify.com/v1/users/{}/playlists".format(spotify_user_id)
         response = requests.post(
             query,
             data=request_body,
@@ -89,7 +90,7 @@ class CreatePlaylist:
             }
         )
         response_json = response.json()
-
+        print(response_json)
         # playlist id
         return response_json["id"]
 
@@ -150,5 +151,7 @@ class CreatePlaylist:
 
 
 if __name__ == '__main__':
+
+    # playlist id
     cp = CreatePlaylist()
     cp.add_song_to_playlist()
