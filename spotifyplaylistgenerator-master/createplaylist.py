@@ -1,11 +1,10 @@
 import os
-
+from secrets import spotify_token, spotify_user_id
 from spotifyclient import SpotifyClient
 
 
 def main():
-    spotify_client = SpotifyClient(os.getenv("SPOTIFY_AUTHORIZATION_TOKEN"),
-                                   os.getenv("SPOTIFY_USER_ID"))
+    spotify_client = SpotifyClient(spotify_token, spotify_user_id)
 
     # get last played tracks
     num_tracks_to_visualise = int(input("How many tracks would you like to visualise? "))

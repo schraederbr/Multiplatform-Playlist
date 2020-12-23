@@ -80,8 +80,7 @@ class CreatePlaylist:
             "public": True
         })
 
-        query = "https://api.spotify.com/v1/users/{}/playlists".format(
-            spotify_user_id)
+        query = "https://api.spotify.com/v1/users/{}/playlists".format(spotify_user_id)
         response = requests.post(
             query,
             data=request_body,
@@ -91,7 +90,7 @@ class CreatePlaylist:
             }
         )
         response_json = response.json()
-
+        print(response_json)
         # playlist id
         return response_json["id"]
 
