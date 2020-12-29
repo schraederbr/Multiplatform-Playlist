@@ -6,12 +6,21 @@ import googleapiclient.discovery
 import googleapiclient.errors
 import requests
 import youtube_dl
-
 from exceptions import ResponseException
+
 from secrets import spotify_token, spotify_user_id
 
 
+
+
+
+# @dataclass
+# class Playlist:
+#     playlist: list
+
 class CreatePlaylist:
+    Playlist = list
+
     def __init__(self):
         self.youtube_client = self.get_youtube_client()
         self.all_song_info = {}
@@ -75,7 +84,7 @@ class CreatePlaylist:
     def create_playlist(self):
         """Create A New Playlist"""
         request_body = json.dumps({
-            "name": "Youtube Liked Vids",
+            "name": "Bot 2 playlist",
             "description": "All Liked Youtube Videos",
             "public": True
         })
@@ -96,6 +105,7 @@ class CreatePlaylist:
 
     def get_spotify_uri(self, song_name, artist):
         """Search For the Song"""
+
         query = "https://api.spotify.com/v1/search?query=track%3A{}+artist%3A{}&type=track&offset=0&limit=20".format(
             song_name,
             artist
@@ -118,7 +128,7 @@ class CreatePlaylist:
     def add_song_to_playlist(self):
         """Add all liked songs into a new Spotify playlist"""
         # populate dictionary with our liked songs
-        self.get_liked_videos()
+        #self.get_liked_videos()
 
         # collect all of uri
         uris = [info["spotify_uri"]
@@ -151,7 +161,6 @@ class CreatePlaylist:
 
 
 if __name__ == '__main__':
-
     # playlist id
     cp = CreatePlaylist()
     cp.add_song_to_playlist()
