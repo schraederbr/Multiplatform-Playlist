@@ -12,38 +12,8 @@ from spotipy.oauth2 import SpotifyOAuth
 scope = "user-library-read streaming user-read-playback-state user-modify-playback-state user-read-currently-playing " \
         "app-remote-control user-library-modify user-follow-modify playlist-modify-private user-top-read"
 
+global sp
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
-
-
-# devices = sp.devices()
-#
-# songToSearch = input("Enter a song to add to queue: ")
-# songToSearch = songToSearch.replace(" ", "+")
-# sr = sp.search(songToSearch, 1, 0, "track", None)
-# # print(devices)
-# for t in sr['tracks']['items']:
-#     print(t['uri'])
-#     uri = t['uri']
-#
-# # print(sr)
-# ids = []
-# # for key in devices:
-# #     print(key, ":", devices[key])
-#
-# for item in devices["devices"]:
-#     print(item["id"])
-#     ids.append((item["id"], item["is_active"]))
-#
-# # sp.search
-# for device in devices["devices"]:
-#     if device["is_active"] and not device["is_restricted"]:
-#         # sp.start_playback()
-#         sp.add_to_queue(uri)
-#         print("'" + t['name'] + "'" + " has been added to your queue")
-#
-# print('\n')
-# topTracks = sp.current_user_top_tracks(5, 0, "long_term")
-# print(topTracks)
 
 
 # this could be cleaned up by making a function for going through the devices
@@ -79,25 +49,41 @@ def add_song_to_queue():
 
 
 def print_top_tracks():
-    top_track_response = sp.current_user_top_tracks(2, 0, "long_term")
-    top_tracks = []
-    # print out the name and artist not all the info
-    # for t in top_track_response['items']:
-    #     top_tracks.append()
-    print(top_track_response)
-
-
-while True:
-    function_to_start = input('1 to play. 2 to pause. 3 to add a song to queue. 4 to print top tracks\nexit to quit\n')
-    if function_to_start == '1':
-        start_playback()
-    elif function_to_start == '2':
-        pause_playback()
-    elif function_to_start == '3':
-        add_song_to_queue()
-    elif function_to_start == '4':
-        print_top_tracks()
-    elif function_to_start == 'exit':
-        break
+    how_many = input("How many top tracks to display?")
+    if how_many.isdigit():
+        top_track_response = sp.current_user_top_tracks(how_many, 0, "long_term")
+        for t in top_track_response['items']:
+            print("'" + t['name'] + "'" + " by: " + "'" + t['artists'][0]['name'] + "'")
     else:
-        print('Unrecognized command')
+        print('invalid input')
+        my_main()
+
+
+# doesn't work at the moment
+def re_login():
+    global sp
+    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(show_dialog='true', scope=scope))
+
+
+def my_main():
+    while True:
+        function_to_start = input(
+            '1 to play. 2 to pause. 3 to add a song to queue. 4 to print top tracks\n'
+            '5 to change account. exit to quit\n')
+        if function_to_start == '1':
+            start_playback()
+        elif function_to_start == '2':
+            pause_playback()
+        elif function_to_start == '3':
+            add_song_to_queue()
+        elif function_to_start == '4':
+            print_top_tracks()
+        elif function_to_start == '5':
+            re_login()
+        elif function_to_start == 'exit':
+            break
+        else:
+            print('Unrecognized command')
+
+
+my_main()
