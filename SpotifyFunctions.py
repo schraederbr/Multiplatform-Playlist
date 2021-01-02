@@ -9,9 +9,9 @@ import spotipy
 # import requests
 from spotipy.oauth2 import SpotifyOAuth
 
+global scope
 scope = "user-library-read streaming user-read-playback-state user-modify-playback-state user-read-currently-playing " \
         "app-remote-control user-library-modify user-follow-modify playlist-modify-private user-top-read"
-
 global sp
 sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
 
@@ -60,9 +60,13 @@ def print_top_tracks():
 
 
 # doesn't work at the moment
+# this site might help: https://lambduhh.github.io/2019/09/25/polyjamoury.html
 def re_login():
+    sc = scope
+    sc += " ugc-image-upload"
     global sp
-    sp = spotipy.Spotify(auth_manager=SpotifyOAuth(show_dialog='true', scope=scope))
+    # sp = spotipy.Spotify(auth_manager=SpotifyOAuth(show_dialog='true', scope=sc))
+    sp.current_user_top_tracks(1, 0, "long_term")
 
 
 def my_main():
