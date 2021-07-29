@@ -4,9 +4,11 @@
 # SPOTIPY_REDIRECT_URI
 
 import spotipy
-# import json
-# import os
-# import requests
+import flask
+import json
+import matplotlib.pyplot as plt, mpld3
+
+
 from spotipy.oauth2 import SpotifyOAuth
 
 global scope
@@ -69,12 +71,21 @@ def print_top_tracks():
 
 def analyze_song():
     song = search_song("Enter song you want to analyse: ")
-    print(get_name_artist(song) + " will be analysed")
-    #print(song)
+    name = get_name_artist(song)
+    print(name + " will be analysed")
     track_uri = "spotify:track:7Bmd0vPLxSyFFLH7VXm7T2"
     for t in song['tracks']['items']:
         track_uri = t['uri']
-    print(sp.audio_features(track_uri))
+    r = sp.audio_features(track_uri)
+    print(r[0])
+    plt.figure(figsize=(12, 8), dpi=80)
+    plt.title(name + " Audio Features")
+    plt.xlabel('Audio Feature', fontweight='bold')
+    features = ['danceability', 'energy', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence']
+    values = [r[0]['danceability'], r[0]['energy'], r[0]['speechiness'], r[0]['acousticness'], r[0]['instrumentalness'], r[0]['liveness'], r[0]['valence']]
+    plt.bar(features, values)
+    #mpld3.show()
+    plt.savefig('song_features.png')
 
 
 # doesn't work at the moment
@@ -87,7 +98,6 @@ def re_login():
     sp.current_user_top_tracks(1, 0, "long_term")
 
 def example_bar_graph():
-    import matplotlib.pyplot as plt
     fig = plt.figure()
     ax = fig.add_axes([0, 0, 1, 1])
     langs = ['C', 'C++', 'Java', 'Python', 'PHP']
@@ -95,30 +105,35 @@ def example_bar_graph():
     ax.bar(langs, students)
     plt.show()
 
-def my_main():
-    while True:
-        function_to_start = input(
-            '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
-            '7 analyse track\n'
-            '5 to change account. exit to quit\n')
-        if function_to_start == '1':
-            start_playback()
-        elif function_to_start == '2':
-            pause_playback()
-        elif function_to_start == '3':
-            add_song_to_queue()
-        elif function_to_start == '4':
-            print_top_tracks()
-        elif function_to_start == '5':
-            re_login()
-        elif function_to_start == '6':
-            play_next_track()
-        elif function_to_start == '7':
-            analyze_song()
-        elif function_to_start == 'exit':
-            break
-        else:
-            print('Unrecognized command')
 
+def my_main():
+    try:
+        while True:
+            function_to_start = input(
+                '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
+                '6 play next track, 7 analyse track\n'
+                '5 to change account. exit to quit\n')
+            if function_to_start == '1':
+                start_playback()
+            elif function_to_start == '2':
+                pause_playback()
+            elif function_to_start == '3':
+                add_song_to_queue()
+            elif function_to_start == '4':
+                print_top_tracks()
+            elif function_to_start == '5':
+                re_login()
+            elif function_to_start == '6':
+                play_next_track()
+            elif function_to_start == '7':
+                analyze_song()
+            elif function_to_start == 'exit' or function_to_start == 'e':
+                break
+            else:
+                print('Unrecognized command')
+    except Exception as e:
+        print(e)
+        print("\nError occured. Restarting Application\n")
+        my_main()
 
 my_main()
