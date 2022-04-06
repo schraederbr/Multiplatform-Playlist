@@ -3,19 +3,35 @@
 # SPOTIPY_REDIRECT_URI must be: https://schraederbr.github.io/
 # SPOTIPY_REDIRECT_URI
 
+import os
+import sys
+import shutil
 import spotipy
 import flask
 import json
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt, mpld3
-
-
 from spotipy.oauth2 import SpotifyOAuth
-
-global scope
-scope = "user-library-read streaming user-read-playback-state user-modify-playback-state user-read-currently-playing " \
+from json.decoder import JSONDecodeError
+import spotipy.util as util
+# Get the username from terminal
+username = 'schraederbr'
+global SCOPE
+SCOPE = "user-library-read streaming user-read-playback-state user-modify-playback-state user-read-currently-playing " \
         "app-remote-control user-library-modify user-follow-modify playlist-modify-private user-top-read"
-global sp
-sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+# Erase cache and prompt for user permission
+try:
+    token = util.prompt_for_user_token(username, SCOPE) # add scope
+except (AttributeError, JSONDecodeError):
+    os.remove(f".cache-{username}")
+    token = util.prompt_for_user_token(username, SCOPE) # add scope
+
+# Create our spotify object with permissions
+spotifyObject = spotipy.Spotify(auth=token)
+
+global SP
+SP = spotipy.Spotify(auth=token)
 
 def run_command(spot, funct):
     device_response = spot.devices()
@@ -25,13 +41,13 @@ def run_command(spot, funct):
 
 
 def start_playback():
-    run_command(sp, sp.start_playback())
+    run_command(SP, SP.start_playback())
 
 def pause_playback():
-    run_command(sp, sp.pause_playback())
+    run_command(SP, SP.pause_playback())
 
 def play_next_track():
-    run_command(sp, sp.next_track())
+    run_command(SP, SP.next_track())
 
 def get_name_artist(response):
     for t in response['tracks']['items']:
@@ -41,7 +57,11 @@ def get_name_artist(response):
 # list the name of the song that was found
 def search_song(text):
     song_to_search = input(text)
-    search_response = sp.search(song_to_search, 1, 0, "track", None)
+    search_response = SP.search(song_to_search, 1, 0, "track", None)
+    return search_response
+
+def search_song_direct(song_to_search):
+    search_response = SP.search(song_to_search, 1, 0, "track", None)
     return search_response
 
 def add_song_to_queue():
@@ -49,11 +69,11 @@ def add_song_to_queue():
     track_uri = "spotify:track:7Bmd0vPLxSyFFLH7VXm7T2"
     for t in search_response['tracks']['items']:
         track_uri = t['uri']
-    device_response = sp.devices()
+    device_response = SP.devices()
     for d in device_response["devices"]:
         if d["is_active"] and not d["is_restricted"]:
             # sp.start_playback()
-            sp.add_to_queue(track_uri)
+            SP.add_to_queue(track_uri)
             #use get_name_artist function to shorten this line
             print("'" + t['name'] + "'" + " by: " + "'" + t['artists'][0]['name'] + "'"
                   + " has been added to your queue")
@@ -62,21 +82,23 @@ def add_song_to_queue():
 def print_top_tracks():
     how_many = input("How many top tracks to display?")
     if how_many.isdigit():
-        top_track_response = sp.current_user_top_tracks(how_many, 0, "long_term")
+        top_track_response = SP.current_user_top_tracks(how_many, 0, "long_term")
         for t in top_track_response['items']:
             print("'" + t['name'] + "'" + " by: " + "'" + t['artists'][0]['name'] + "'")
     else:
         print('invalid input')
-        my_main()
 
-def analyze_song():
-    song = search_song("Enter song you want to analyse: ")
+def search_analyze(query):
+    song = search_song_direct(query)
+    analyze_song(song)
+
+def analyze_song(song):
     name = get_name_artist(song)
     print(name + " will be analysed")
     track_uri = "spotify:track:7Bmd0vPLxSyFFLH7VXm7T2"
     for t in song['tracks']['items']:
         track_uri = t['uri']
-    r = sp.audio_features(track_uri)
+    r = SP.audio_features(track_uri)
     print(r[0])
     plt.figure(figsize=(12, 8), dpi=80)
     plt.title(name + " Audio Features")
@@ -85,17 +107,11 @@ def analyze_song():
     values = [r[0]['danceability'], r[0]['energy'], r[0]['speechiness'], r[0]['acousticness'], r[0]['instrumentalness'], r[0]['liveness'], r[0]['valence']]
     plt.bar(features, values)
     #mpld3.show()
-    plt.savefig('song_features.png')
+    plt.savefig('static/song_features.png')
 
 
-# doesn't work at the moment
-# this site might help: https://lambduhh.github.io/2019/09/25/polyjamoury.html
-def re_login():
-    sc = scope
-    sc += " ugc-image-upload"
-    global sp
-    # sp = spotipy.Spotify(auth_manager=SpotifyOAuth(show_dialog='true', scope=sc))
-    sp.current_user_top_tracks(1, 0, "long_term")
+def sign_out():
+    os.remove(f".cache-{username}")
 
 def example_bar_graph():
     fig = plt.figure()
@@ -106,13 +122,13 @@ def example_bar_graph():
     plt.show()
 
 
-def my_main():
+def command_line_input():
     try:
         while True:
             function_to_start = input(
                 '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
                 '6 play next track, 7 analyse track\n'
-                '5 to change account. exit to quit\n')
+                '5 to sign out. exit to quit\n')
             if function_to_start == '1':
                 start_playback()
             elif function_to_start == '2':
@@ -122,11 +138,12 @@ def my_main():
             elif function_to_start == '4':
                 print_top_tracks()
             elif function_to_start == '5':
-                re_login()
+                sign_out()
+                break
             elif function_to_start == '6':
                 play_next_track()
             elif function_to_start == '7':
-                analyze_song()
+                analyze_song() #fix this
             elif function_to_start == 'exit' or function_to_start == 'e':
                 break
             else:
@@ -134,6 +151,4 @@ def my_main():
     except Exception as e:
         print(e)
         print("\nError occured. Restarting Application\n")
-        my_main()
-
-my_main()
+        command_line_input()
