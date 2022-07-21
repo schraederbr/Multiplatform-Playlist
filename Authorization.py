@@ -4,21 +4,18 @@
 # SPOTIPY_REDIRECT_URI
 
 # DO NOT EDIT THIS, EDIT SpotifyFunctions.py!
-
-
 import spotipy
 # import json
 # import os
 # import requests
 from spotipy.oauth2 import SpotifyOAuth
-
 client_id = "c36c7e2ef6e84235985b72415d66ab13"
 client_secret = "a9c49ce1979943648ac35b9d5b39aa16"
-
+redirect_uri = "https://schraederbr.github.io/"
 scope = "user-library-read streaming user-read-playback-state user-modify-playback-state user-read-currently-playing " \
         "app-remote-control user-library-modify"
 
-SP = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+SP = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id= client_id, client_secret=client_secret, redirect_uri=redirect_uri, scope=scope ))
 
 results = SP.current_user_saved_tracks()
 # print(results)

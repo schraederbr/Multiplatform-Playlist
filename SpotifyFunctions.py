@@ -4,25 +4,30 @@
 # SPOTIPY_REDIRECT_URI
 
 import os
-import sys
-import shutil
 import spotipy
-import flask
-import json
 import matplotlib
 matplotlib.use('Agg')
-import matplotlib.pyplot as plt, mpld3
-from spotipy.oauth2 import SpotifyOAuth
+import matplotlib.pyplot as plt
 from json.decoder import JSONDecodeError
 import spotipy.util as util
+#from dotenv import load_dotenv
 # Get the username from terminal
+#load_dotenv()
+# username = os.getenv("USERNAME")
+# client_id = os.getenv("SPOTIPY_CLIENT_ID")
+# client_secret = os.getenv("SPOTIPY_CLIENT_SECRET")
+# redirect_uri = os.getenv("SPOTIPY_REDIRECT_URI")
 username = 'schraederbr'
+client_id = "c36c7e2ef6e84235985b72415d66ab13"
+client_secret = "a9c49ce1979943648ac35b9d5b39aa16"
+redirect_uri = "https://schraederbr.github.io/"
+
+
 global SCOPE
-SCOPE = "user-library-read streaming user-read-playback-state user-modify-playback-state user-read-currently-playing " \
-        "app-remote-control user-library-modify user-follow-modify playlist-modify-private user-top-read"
+SCOPE = "ugc-image-upload user-modify-playback-state user-follow-modify user-read-recently-played user-read-playback-position playlist-read-collaborative app-remote-control user-read-playback-state user-read-email streaming user-top-read playlist-modify-public user-library-modify user-follow-read user-read-currently-playing user-library-read playlist-read-private user-read-private playlist-modify-private"
 # Erase cache and prompt for user permission
 try:
-    token = util.prompt_for_user_token(username, SCOPE) # add scope
+    token = util.prompt_for_user_token(client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri, username=username, scope=SCOPE) # add scope
 except (AttributeError, JSONDecodeError):
     os.remove(f".cache-{username}")
     token = util.prompt_for_user_token(username, SCOPE) # add scope
@@ -78,6 +83,28 @@ def add_song_to_queue():
             print("'" + t['name'] + "'" + " by: " + "'" + t['artists'][0]['name'] + "'"
                   + " has been added to your queue")
 
+def print_followed_artists():
+    with(open('followed_artists.txt', 'w')) as f:
+        followed_artists = SP.current_user_followed_artists(limit=50)
+        #f.write(str(followed_artists))
+        print(followed_artists)
+        total = followed_artists['artists']['total']
+        after = followed_artists['artists']['cursors']['after']
+        print(total)
+        print(after)
+        i = (total // 50) + 1
+        print("Total Pages {}".format(i))
+        for user in followed_artists['artists']['items']:
+            f.write("{}, {}\n".format(user['id'], user['name']))
+            print(user['name'])
+        while(i > 0):
+            followed_artists = SP.current_user_followed_artists(limit=50, after=after)
+            #f.write(str(followed_artists))
+            after = followed_artists['artists']['cursors']['after']
+            for artist in followed_artists['artists']['items']:
+                f.write("{}, {}\n".format(user['id'], user['name']))
+                print(artist['name']) 
+            i -= 1
 
 def print_top_tracks():
     how_many = input("How many top tracks to display?")
@@ -127,7 +154,7 @@ def command_line_input():
         while True:
             function_to_start = input(
                 '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
-                '6 play next track, 7 analyse track\n'
+                '6 play next track, 7 analyse track, 8 show followed users\n'
                 '5 to sign out. exit to quit\n')
             if function_to_start == '1':
                 start_playback()
@@ -144,7 +171,9 @@ def command_line_input():
                 play_next_track()
             elif function_to_start == '7':
                 analyze_song() #fix this
-            elif function_to_start == 'exit' or function_to_start == 'e':
+            elif function_to_start == '8':
+                print_followed_artists()
+            elif function_to_start == 'exit' or function_to_start == 'e' or function_to_start == 'cls':
                 break
             else:
                 print('Unrecognized command')
@@ -152,3 +181,8 @@ def command_line_input():
         print(e)
         print("\nError occured. Restarting Application\n")
         command_line_input()
+
+if __name__ == '__main__':
+    command_line_input()
+    #example_bar_graph()
+    #search_analyze("'I want it that way
