@@ -98,15 +98,15 @@ def get_followed_artists():
         for user in followed_artists['artists']['items']:
             artistIDs.append(user['id'])
             f.write("{}, {}\n".format(str(user['id']), str(user['name'])))
-            print(user['name'])
+            #print(user['name'])
         while(i > 0):
             followed_artists = SP.current_user_followed_artists(limit=50, after=after)
             #f.write(str(followed_artists))
             after = followed_artists['artists']['cursors']['after']
             for artist in followed_artists['artists']['items']:
-                artistIDs.append(user['id'])
+                artistIDs.append(artist['id'])
                 f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
-                print(artist['name']) 
+                #print(artist['name']) 
             i -= 1
     return artistIDs
 
@@ -164,6 +164,7 @@ def command_line_input():
             function_to_start = input(
                 '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
                 '6 play next track, 7 analyse track, 8 show followed users\n'
+                '9 unfollow all followed artists\n'
                 '5 to sign out. exit to quit\n')
             if function_to_start == '1':
                 start_playback()
@@ -183,8 +184,10 @@ def command_line_input():
             elif function_to_start == '8':
                 get_followed_artists()
             elif function_to_start == '9':
-                unfollow_artists(get_followed_artists)
+                #Probably need to format the list appropriately or something
+                SP.user_unfollow_artists(get_followed_artists()[0])
             elif function_to_start == 'exit' or function_to_start == 'e' or function_to_start == 'cls':
+                #call cls in the shell
                 break
             else:
                 print('Unrecognized command')
