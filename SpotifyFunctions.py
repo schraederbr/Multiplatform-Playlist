@@ -83,28 +83,37 @@ def add_song_to_queue():
             print("'" + t['name'] + "'" + " by: " + "'" + t['artists'][0]['name'] + "'"
                   + " has been added to your queue")
 
-def print_followed_artists():
-    with(open('followed_artists.txt', 'w')) as f:
+def get_followed_artists():
+    artistIDs = []
+    with(open('followed_artists.txt', 'w', encoding="utf-8")) as f:
         followed_artists = SP.current_user_followed_artists(limit=50)
         #f.write(str(followed_artists))
-        print(followed_artists)
+        #print(followed_artists)
         total = followed_artists['artists']['total']
         after = followed_artists['artists']['cursors']['after']
         print(total)
         print(after)
-        i = (total // 50) + 1
+        i = (total // 50)
         print("Total Pages {}".format(i))
         for user in followed_artists['artists']['items']:
-            f.write("{}, {}\n".format(user['id'], user['name']))
+            artistIDs.append(user['id'])
+            f.write("{}, {}\n".format(str(user['id']), str(user['name'])))
             print(user['name'])
         while(i > 0):
             followed_artists = SP.current_user_followed_artists(limit=50, after=after)
             #f.write(str(followed_artists))
             after = followed_artists['artists']['cursors']['after']
             for artist in followed_artists['artists']['items']:
-                f.write("{}, {}\n".format(user['id'], user['name']))
+                artistIDs.append(user['id'])
+                f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
                 print(artist['name']) 
             i -= 1
+    return artistIDs
+
+def unfollow_artists(artists):
+    print(*artists, sep='\n')
+    SP.unfollow_artist(artists)
+
 
 def print_top_tracks():
     how_many = input("How many top tracks to display?")
@@ -172,7 +181,9 @@ def command_line_input():
             elif function_to_start == '7':
                 analyze_song() #fix this
             elif function_to_start == '8':
-                print_followed_artists()
+                get_followed_artists()
+            elif function_to_start == '9':
+                unfollow_artists(get_followed_artists)
             elif function_to_start == 'exit' or function_to_start == 'e' or function_to_start == 'cls':
                 break
             else:
