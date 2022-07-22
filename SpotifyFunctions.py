@@ -83,7 +83,9 @@ def add_song_to_queue():
             print("'" + t['name'] + "'" + " by: " + "'" + t['artists'][0]['name'] + "'"
                   + " has been added to your queue")
 
+
 def get_followed_artists():
+    afters = [None]
     artistIDs = []
     with(open('followed_artists.txt', 'w', encoding="utf-8")) as f:
         followed_artists = SP.current_user_followed_artists(limit=50)
@@ -91,29 +93,109 @@ def get_followed_artists():
         #print(followed_artists)
         total = followed_artists['artists']['total']
         after = followed_artists['artists']['cursors']['after']
+        afters.append(after)
         print(total)
         print(after)
         i = (total // 50)
         print("Total Pages {}".format(i))
-        for user in followed_artists['artists']['items']:
-            artistIDs.append(user['id'])
-            f.write("{}, {}\n".format(str(user['id']), str(user['name'])))
-            #print(user['name'])
+        for artist in followed_artists['artists']['items']:
+            artistIDs.append(artist['id'])
+            f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
+            #print(artist['name'])
         while(i > 0):
             followed_artists = SP.current_user_followed_artists(limit=50, after=after)
             #f.write(str(followed_artists))
             after = followed_artists['artists']['cursors']['after']
+            afters.append(after)
             for artist in followed_artists['artists']['items']:
                 artistIDs.append(artist['id'])
                 f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
                 #print(artist['name']) 
             i -= 1
+    # There seems to  be an extra none on the end of afters. Shouldn't be a problem
+    #Maybe return artists as 50 item chunks instead of a single list
     return artistIDs
 
-def unfollow_artists(artists):
-    print(*artists, sep='\n')
-    SP.unfollow_artist(artists)
+def unfollow_all_artists():
+    artistIDs = get_followed_artists()
+    i = 0
+    while i < len(artistIDs) // 50 + 1:
+        ids = artistIDs[i*50:i*50+50]
+        print(ids, sep=', ')
+        SP.user_unfollow_artists(ids)
+        i += 1
 
+def get_user_playlist_IDs():
+    allPlaylistIDs = []
+    playlist = SP.current_user_playlists(limit=50, offset=0)
+    items = playlist['items']
+    total = playlist['total']
+    offset = 0
+    #this causes duplicates if the number of playlists isn't divisible by 50
+    #Shouldn't be a problem
+    while offset < total:
+        playlist = SP.current_user_playlists(limit=50, offset=offset)
+        for i in items:
+            allPlaylistIDs.append(i['id'])
+        offset += 50
+        print("offset: {}".format(offset))
+    # 
+    #print("Total Playlists: {}".format())
+    #print(*allPlaylistIDs, sep='\n')
+    #print(len(allPlaylistIDs))
+    return allPlaylistIDs
+
+def get_artists_in_playlists(playlistIDs):
+    #I need to deal with people who are featured on songs
+    artistIDs = []
+    artistNames = []
+    if(type(playlistIDs) == list):
+        for p in playlistIDs:
+            playlistTracks = SP.playlist_tracks(p)
+            playlistDetails = SP.playlist(p)
+            print(playlistDetails['name'])
+            items = playlistTracks['items']
+            #print(playlist)
+            for i in items:
+                artistIDs.append(i['track']['artists'][0]['id'])
+                artistNames.append(i['track']['artists'][0]['name'])
+            #print(playlist)
+    else:
+        playlistTracks = SP.playlist_tracks(playlistIDs)
+        playlistDetails = SP.playlist(playlistIDs)
+        print(playlistDetails['name'])
+        for i in playlistTracks['items']:
+            artistIDs.append(i['track']['artists'][0]['id'])
+            artistNames.append(i['track']['artists'][0]['name'])
+    artistIDs = list(set(artistIDs)) 
+    artistNames = list(set(artistNames))
+    print(*artistIDs, sep=', ')
+    print(*artistNames, sep=', ')
+    return artistIDs
+
+def get_playlist_info(playlistIDs):
+    nameIDs = {}
+    if(type(playlistIDs) == list):
+        for p in playlistIDs:
+            playlistDetails = SP.playlist(p)
+            nameIDs[playlistDetails['name']] = p
+            #info.append((p, playlistDetails['name']))
+    else:
+        playlistDetails = SP.playlist(playlistIDs)
+        #info.append((p, playlistDetails['name']))
+        nameIDs[playlistDetails['name']] = p
+    return nameIDs
+
+
+def search_my_playlist(text):
+    #Cache playlist info or get it to search faster somehow
+    playlistInfo = get_playlist_info(get_user_playlist_IDs())
+    playlist_to_search = input(text)
+    for key in playlistInfo:
+        if playlist_to_search in key:
+            print(key)
+            print(playlistInfo[key])
+    
 
 def print_top_tracks():
     how_many = input("How many top tracks to display?")
@@ -164,7 +246,7 @@ def command_line_input():
             function_to_start = input(
                 '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
                 '6 play next track, 7 analyse track, 8 show followed users\n'
-                '9 unfollow all followed artists\n'
+                '9 unfollow all followed artists, 10 get artist IDs from playlist, 11 search playlist\n'
                 '5 to sign out. exit to quit\n')
             if function_to_start == '1':
                 start_playback()
@@ -185,7 +267,15 @@ def command_line_input():
                 get_followed_artists()
             elif function_to_start == '9':
                 #Probably need to format the list appropriately or something
-                SP.user_unfollow_artists(get_followed_artists()[0])
+                #artists = get_followed_artists()
+                #print(artists)
+                #SP.user_unfollow_artists(artists)
+                unfollow_all_artists()
+            elif function_to_start == '10':
+                get_playlist_info(get_user_playlist_IDs()[0:10])
+                #get_user_playlist_IDs()
+            elif function_to_start == '11':
+                search_my_playlist("Enter playlist name: ")
             elif function_to_start == 'exit' or function_to_start == 'e' or function_to_start == 'cls':
                 #call cls in the shell
                 break
