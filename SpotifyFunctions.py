@@ -164,19 +164,19 @@ def get_artists_in_playlists(playlistIDs):
     if(type(playlistIDs) == str):
         playlistIDs = [playlistIDs]
     for p in playlistIDs:
+        p = p.strip()
         playlistDetails = SP.playlist(p)
         print(playlistDetails['name'])
         print("PlaylistIDs: {}".format(p))
-        p = p.strip()
         playlistTracks = SP.playlist_tracks(p, limit=100, offset=0)
-        print(playlistTracks)
+        #print(playlistTracks)
         total = playlistTracks['total']
         for i in range(total // 100 + 1):
             playlistTracks = SP.playlist_tracks(p, limit=100, offset=i*100)
             for track in playlistTracks['items']:
                 artistIDs.append(track['track']['artists'][0]['id'])
                 artistNames.append(track['track']['artists'][0]['name'])
-                print("ID:{} Name:{}".format(i['track']['artists'][0]['id'], i['track']['artists'][0]['name']))
+                print("ID:{} Name:{}".format(track['track']['artists'][0]['id'], track['track']['artists'][0]['name']))
         # for i in playlistTracks['items']:
         #     artistIDs.append(i['track']['artists'][0]['id'])
         #     artistNames.append(i['track']['artists'][0]['name'])
