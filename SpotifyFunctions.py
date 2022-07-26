@@ -11,6 +11,7 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from json.decoder import JSONDecodeError
 import spotipy.util as util
+from os.path import exists
 #from dotenv import load_dotenv
 # Get the username from terminal
 #load_dotenv()
@@ -118,6 +119,7 @@ def get_followed_artists():
         artistIDs = list(set(artistIDs))
         for a in artistIDs:
             f.write("{}\n".format(a))
+        f.close()
     return artistIDs
 
 def unfollow_all_artists():
@@ -147,50 +149,69 @@ def get_user_playlist_IDs():
     #print("Total Playlists: {}".format())
     #print(*allPlaylistIDs, sep='\n')
     #print(len(allPlaylistIDs))
-    with open('playlist_IDs.txt', 'w') as f:
+    with open('playlist_IDs.txt', 'w', encoding="utf-8") as f:
         for i in allPlaylistIDs:
             f.write("{}\n".format(i))
+        f.close()
+    print("All Playlist IDs have been written to playlist_IDs.txt")
     return allPlaylistIDs
 
 def get_artists_in_playlists(playlistIDs):
+    print("type of playlistIDs{}".format(type(playlistIDs)))
     #I need to deal with people who are featured on songs
     artistIDs = []
     artistNames = []
-    if(type(playlistIDs) == list):
-        for p in playlistIDs:
-            playlistTracks = SP.playlist_tracks(p)
-            playlistDetails = SP.playlist(p)
-            print(playlistDetails['name'])
-            items = playlistTracks['items']
-            #print(playlist)
-            for i in items:
-                artistIDs.append(i['track']['artists'][0]['id'])
-                artistNames.append(i['track']['artists'][0]['name'])
-            #print(playlist)
-    else:
-        playlistTracks = SP.playlist_tracks(playlistIDs)
-        playlistDetails = SP.playlist(playlistIDs)
+    if(type(playlistIDs) == str):
+        playlistIDs = [playlistIDs]
+    for p in playlistIDs:
+        playlistDetails = SP.playlist(p)
         print(playlistDetails['name'])
-        for i in playlistTracks['items']:
-            artistIDs.append(i['track']['artists'][0]['id'])
-            artistNames.append(i['track']['artists'][0]['name'])
+        print("PlaylistIDs: {}".format(p))
+        p = p.strip()
+        playlistTracks = SP.playlist_tracks(p, limit=100, offset=0)
+        print(playlistTracks)
+        total = playlistTracks['total']
+        for i in range(total // 100 + 1):
+            playlistTracks = SP.playlist_tracks(p, limit=100, offset=i*100)
+            for track in playlistTracks['items']:
+                artistIDs.append(track['track']['artists'][0]['id'])
+                artistNames.append(track['track']['artists'][0]['name'])
+                print("ID:{} Name:{}".format(i['track']['artists'][0]['id'], i['track']['artists'][0]['name']))
+        # for i in playlistTracks['items']:
+        #     artistIDs.append(i['track']['artists'][0]['id'])
+        #     artistNames.append(i['track']['artists'][0]['name'])
+        
     artistIDs = list(set(artistIDs)) 
     artistNames = list(set(artistNames))
     print(*artistIDs, sep=', ')
     print(*artistNames, sep=', ')
+    print("Total Artists: {}".format(len(artistIDs)))
     return artistIDs
 
 def get_playlist_info(playlistIDs):
     nameIDs = {}
-    if(type(playlistIDs) == list):
-        for p in playlistIDs:
-            playlistDetails = SP.playlist(p)
-            nameIDs[playlistDetails['name']] = p
-            #info.append((p, playlistDetails['name']))
+    if(exists("nameIDs.txt")):
+        with open('nameIDs.txt', 'r', encoding="utf-8") as f:
+            for line in f:
+                name, id = line.split(',')
+                nameIDs[name] = id
+            f.close()
     else:
-        playlistDetails = SP.playlist(playlistIDs)
-        #info.append((p, playlistDetails['name']))
-        nameIDs[playlistDetails['name']] = playlistIDs
+        if(type(playlistIDs) == list):
+            for p in playlistIDs:
+                playlistDetails = SP.playlist(p)
+                nameIDs[playlistDetails['name']] = p
+                #info.append((p, playlistDetails['name']))
+        else:
+            playlistDetails = SP.playlist(playlistIDs)
+            #info.append((p, playlistDetails['name']))
+            nameIDs[playlistDetails['name']] = playlistIDs
+        print("Playlist Names and IDs:")
+        
+        with open('nameIDs.txt', 'w', encoding="utf-8") as f:
+            for i in nameIDs:
+                f.write("{},{}\n".format(i, nameIDs[i]))
+            f.close()
     return nameIDs
 
 
@@ -208,14 +229,14 @@ def search_my_playlists():
             returnedPlaylists.append(playlistInfo[key])
             i += 1
     selectedIndex = input("Enter indicis: ")
-    indexStrings = selectedIndex.split(',')
-    print(indexStrings)
-    indexInts = []
-    for i in indexStrings:
-        indexInts += int(i)
-    print(indexInts)
-    playlistID = returnedPlaylists[indexInts]
-    print(get_playlist_info(playlistID))
+    #print(selectedIndex)
+    if(type(selectedIndex) == str):
+        selectedIndex = selectedIndex.split(',')
+        selectedIndex = selectedIndex[0]
+        #print(selectedIndex)
+    #print(selectedIndex)
+    playlistID = returnedPlaylists[int(selectedIndex)]
+    print("PlaylistID: {}".format(playlistID))
     return playlistID
     
 
@@ -264,11 +285,11 @@ def example_bar_graph():
 
 
 def command_line_input():
-    try:
+    # try:
         while True:
             function_to_start = input(
                 '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
-                '6 play next track, 7 analyse track, 8 show followed users\n'
+                '6 play next track, 7 analyse track, 8 show followed artists\n'
                 '9 unfollow all followed artists, 10 get artist IDs from playlist, 11 search playlist\n'
                 '12 follow artists in playlist, 5 to sign out. exit to quit\n')
             if function_to_start == '1':
@@ -301,21 +322,23 @@ def command_line_input():
                 search_my_playlists()
             elif function_to_start == '12':
                 artists = get_artists_in_playlists(search_my_playlists())
+                print(artists)
+                print("Len of artists: {}".format(len(artists)))
                 for i in range(len(artists) // 50 + 1):
                     SP.user_follow_artists(artists[i * 50:i * 50 + 50])    
-                #SP.user_follow_artists(artists)
             elif function_to_start == '13':
-                SP.user_follow_artists(['06bun5reMRmLxFCbcB6UHW'])
+                print(SP.playlist_tracks("45Obyfn0NC7o0e3B3kz2wJ"))
+                #SP.user_follow_artists(['06bun5reMRmLxFCbcB6UHW'])
             
             elif function_to_start == 'exit' or function_to_start == 'e' or function_to_start == 'cls':
                 #call cls in the shell
                 break
             else:
                 print('Unrecognized command')
-    except Exception as e:
-        print(e)
-        print("\nError occured. Restarting Application\n")
-        command_line_input()
+    # except Exception as e:
+    #     print(e)
+    #     print("\nError occured. Restarting Application\n")
+    #     command_line_input()
 
 if __name__ == '__main__':
     command_line_input()
