@@ -4,6 +4,7 @@
 # SPOTIPY_REDIRECT_URI
 
 import os
+from numpy import indices
 import spotipy
 import matplotlib
 matplotlib.use('Agg')
@@ -21,6 +22,8 @@ username = 'schraederbr'
 client_id = "c36c7e2ef6e84235985b72415d66ab13"
 client_secret = "a9c49ce1979943648ac35b9d5b39aa16"
 redirect_uri = "https://schraederbr.github.io/"
+
+#Async API requests would speed up things
 
 
 global SCOPE
@@ -100,7 +103,7 @@ def get_followed_artists():
         print("Total Pages {}".format(i))
         for artist in followed_artists['artists']['items']:
             artistIDs.append(artist['id'])
-            f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
+            #f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
             #print(artist['name'])
         while(i > 0):
             followed_artists = SP.current_user_followed_artists(limit=50, after=after)
@@ -109,11 +112,12 @@ def get_followed_artists():
             afters.append(after)
             for artist in followed_artists['artists']['items']:
                 artistIDs.append(artist['id'])
-                f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
+                #f.write("{}, {}\n".format(str(artist['id']), str(artist['name'])))
                 #print(artist['name']) 
             i -= 1
-    # There seems to  be an extra none on the end of afters. Shouldn't be a problem
-    #Maybe return artists as 50 item chunks instead of a single list
+        artistIDs = list(set(artistIDs))
+        for a in artistIDs:
+            f.write("{}\n".format(a))
     return artistIDs
 
 def unfollow_all_artists():
@@ -143,6 +147,9 @@ def get_user_playlist_IDs():
     #print("Total Playlists: {}".format())
     #print(*allPlaylistIDs, sep='\n')
     #print(len(allPlaylistIDs))
+    with open('playlist_IDs.txt', 'w') as f:
+        for i in allPlaylistIDs:
+            f.write("{}\n".format(i))
     return allPlaylistIDs
 
 def get_artists_in_playlists(playlistIDs):
@@ -183,19 +190,35 @@ def get_playlist_info(playlistIDs):
     else:
         playlistDetails = SP.playlist(playlistIDs)
         #info.append((p, playlistDetails['name']))
-        nameIDs[playlistDetails['name']] = p
+        nameIDs[playlistDetails['name']] = playlistIDs
     return nameIDs
 
 
-def search_my_playlist(text):
+def search_my_playlists():
     #Cache playlist info or get it to search faster somehow
+    returnedPlaylists = []
     playlistInfo = get_playlist_info(get_user_playlist_IDs())
-    playlist_to_search = input(text)
+    playlist_to_search = input("Enter playlist term: ")
+    i = 0
     for key in playlistInfo:
         if playlist_to_search in key:
+            print(i)
             print(key)
             print(playlistInfo[key])
+            returnedPlaylists.append(playlistInfo[key])
+            i += 1
+    selectedIndex = input("Enter indicis: ")
+    indexStrings = selectedIndex.split(',')
+    print(indexStrings)
+    indexInts = []
+    for i in indexStrings:
+        indexInts += int(i)
+    print(indexInts)
+    playlistID = returnedPlaylists[indexInts]
+    print(get_playlist_info(playlistID))
+    return playlistID
     
+
 
 def print_top_tracks():
     how_many = input("How many top tracks to display?")
@@ -247,7 +270,7 @@ def command_line_input():
                 '1 to play. 2 to pause. 6 next track. 3 to add a song to queue. 4 to print top tracks\n'
                 '6 play next track, 7 analyse track, 8 show followed users\n'
                 '9 unfollow all followed artists, 10 get artist IDs from playlist, 11 search playlist\n'
-                '5 to sign out. exit to quit\n')
+                '12 follow artists in playlist, 5 to sign out. exit to quit\n')
             if function_to_start == '1':
                 start_playback()
             elif function_to_start == '2':
@@ -264,7 +287,7 @@ def command_line_input():
             elif function_to_start == '7':
                 analyze_song() #fix this
             elif function_to_start == '8':
-                get_followed_artists()
+                print(get_followed_artists())
             elif function_to_start == '9':
                 #Probably need to format the list appropriately or something
                 #artists = get_followed_artists()
@@ -272,10 +295,18 @@ def command_line_input():
                 #SP.user_unfollow_artists(artists)
                 unfollow_all_artists()
             elif function_to_start == '10':
-                get_playlist_info(get_user_playlist_IDs()[0:10])
+                get_playlist_info(get_user_playlist_IDs())
                 #get_user_playlist_IDs()
             elif function_to_start == '11':
-                search_my_playlist("Enter playlist name: ")
+                search_my_playlists()
+            elif function_to_start == '12':
+                artists = get_artists_in_playlists(search_my_playlists())
+                for i in range(len(artists) // 50 + 1):
+                    SP.user_follow_artists(artists[i * 50:i * 50 + 50])    
+                #SP.user_follow_artists(artists)
+            elif function_to_start == '13':
+                SP.user_follow_artists(['06bun5reMRmLxFCbcB6UHW'])
+            
             elif function_to_start == 'exit' or function_to_start == 'e' or function_to_start == 'cls':
                 #call cls in the shell
                 break
